@@ -1,0 +1,8 @@
+!_TAG_FILE_SORTED	2	/0=unsorted, 1=sorted, 2=foldcase/
+chardet	/Users/wenwen/Work/github/crawler/novel.py	/^import chardet$/;"	i	language:Python
+getChapter	/Users/wenwen/Work/github/crawler/novel.py	/^    def getChapter(self):$/;"	m	language:Python	class:NovelSpider
+NovelSpider	/Users/wenwen/Work/github/crawler/novel.py	/^class NovelSpider():$/;"	c	language:Python
+re	/Users/wenwen/Work/github/crawler/novel.py	/^import re$/;"	i	language:Python
+thread	/Users/wenwen/Work/github/crawler/novel.py	/^import thread$/;"	i	language:Python
+urllib2	/Users/wenwen/Work/github/crawler/novel.py	/^import urllib2$/;"	i	language:Python
+__init__	/Users/wenwen/Work/github/crawler/novel.py	/^    def __init__(self, arg):$/;"	m	language:Python	class:NovelSpider

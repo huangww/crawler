@@ -1,0 +1,13 @@
+test/
+*.mod
+*.out*
+*.swp
+*~
+*.log
+*.aux
+*.synctex.gz
+*.fls
+*.fdb_latexmk
+*.pyc
+.DS_Store
+
