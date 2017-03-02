@@ -10,4 +10,4 @@ test/
 *.fdb_latexmk
 *.pyc
 .DS_Store
-
+.tags

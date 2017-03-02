@@ -24,7 +24,7 @@ class NovelSpider():
         :returns: the unicode page of the url
 
         """
-        userAgent = 'Mozilla/4.0 (compatible; MSIE 5.5; Windows NT)'
+        userAgent = "Mozilla/5.0 (X11; U; Linux i686) Gecko/20071127 Firefox/2.0.0.11"
         headers = { 'User-Agent' : userAgent }
         req = urllib2.Request(url, headers = headers)
         myResponse = urllib2.urlopen(req)
