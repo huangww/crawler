@@ -1,139 +1,128 @@
+"""
+This is a script used to grab the on-line novel update chapter
+"""
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
 import urllib2
-import re
 import thread
-import chardet
 import smtplib
 from email.mime.text import MIMEText
+from bs4 import BeautifulSoup
 
-class NovelSpider():
-    """Novel spider class, used to get updated novel chapters."""
+
+class NovelSpider(object):
+    """ Novel spider class, used to get updated novel chapters."""
     def __init__(self):
-        # super(NovelSpider, self).__init__()
+        super(NovelSpider, self).__init__()
         self.pages = []
-        self.page = 1
+        self.page_number = 1
         self.flag = True
         self.url = "http://zetianjixiaoshuo.com"
 
-    def openUrl(self, url):
+    @staticmethod
+    def open_url(url):
         """ Open the url use Mozilla agent
 
         :url: the url to open
         :returns: the unicode page of the url
 
         """
-        userAgent = "Mozilla/5.0 (X11; U; Linux i686) Gecko/20071127 Firefox/2.0.0.11"
-        headers = { 'User-Agent' : userAgent }
-        req = urllib2.Request(url, headers = headers)
-        myResponse = urllib2.urlopen(req)
-        myPage = myResponse.read()
+        agent = "Mozilla/5.0 (X11; U; Linux i686) Gecko/20071127 Firefox/2.0.0.11"
+        headers = {'User-Agent' : agent}
+        request = urllib2.Request(url, headers=headers)
+        response = urllib2.urlopen(request)
+        page = response.read()
+        return page
 
-        # convert the page to uicode utf-8 page
-        charset = chardet.detect(myPage)
-        charset = charset['encoding']
-        if charset == 'utf-8' or charset == 'UTF-8':
-            myPage = myPage
-        else:
-            myPage = myPage.decode('gb2312','ignore').encode('utf-8')
-        unicodePage = myPage.decode('utf-8')
-        return unicodePage
-        
-    def getPage(self):
-        """ get the newest chapter of the novel
-        :returns: the dict of page {'title':title, 'content':content}
+
+    def get_update_url(self):
+        """ Get the url of the newest chapter
+        :returns: url, string
 
         """
-        unicodePage = self.openUrl(self.url)
-        # find the url of the newst chapter first
+        page = self.open_url(self.url)
+        soup = BeautifulSoup(page, 'lxml')
+        newest_url = ''
         try:
-            link = re.search('<div.*?class="novel">(.*?)</div>', unicodePage, re.S)
-            link = link.group(1)
-            urlList= re.findall(u'<a.*?href="(.*?)".*?>(.*?)</a>', link, re.S)
-            newestUrl = urlList[1][0]
-        except Exception as e:
-            print "Fail to get link of the newest chapter."
-            print e
-            return False
-        unicodePage = self.openUrl(self.url+newestUrl)
+            for tag in soup.find("span", class_="fl"):
+                newest_url = tag.get('href')
+        except Exception as err:
+            raise err
+        newest_url = self.url + newest_url
+        return newest_url
 
-        # try to find the title
+
+    def get_update_page(self):
+        """ Get the content of update novel chapter and store the chapter use a dict
+        :returns: a dict of the newest page
+        page = {'title': title, 'content': content}
+
+        """
         try:
-            myTitle = re.search('<h1>(.*?)</h1>', unicodePage, re.S)
-            myTitle = myTitle.group(1)
-        except Exception as e:
-            print 'Title is changed, please try it again.'
-            print e
-            return False
+            newest_url = self.get_update_url()
+            newest_page = self.open_url(newest_url)
+            soup = BeautifulSoup(newest_page, 'lxml')
+            title = soup.h1.string
+            content_tag = soup.find('div', id="BookText")
+            content = ''
+            for text in content_tag.strings:
+                content = content + text
+            page = {'title': title, 'content': content}
+        except Exception as err:
+            raise err
+        return page
 
-        # try to get the content of the chapter
-        try:
-            # myContent = re.search('<div.*?id="content">(.*?)</div>', unicodePage, re.S)
-            contentList = re.findall('<p>(.*?)</p>', unicodePage, re.S)
 
-            myContent = ''
-            for content in contentList:
-                myContent = myContent + content 
-        except Exception as e:
-            print 'Content is changed, please redo the analysis.'
-            print e
-            return False
-
-        myContent = myContent.replace("<br />", "\n")
-        myContent = myContent.replace("&nbsp", "")
-        myContent = myContent.replace(" ", " ")
-
-        # store the chapter use a dict
-        onePage = {'title': myTitle, 'content': myContent}
-        return onePage
-                
-
-    def loadPage(self):
+    def load_page(self):
         """ Load the page and set the flag to false if not success
         :returns: TODO
 
         """
         while self.flag:
-           if len(self.pages) < 1:
-               try:
-                   myPage = self.getPage()
-                   if myPage == False:
-                       print "Fail to get the newest chapter."
-                       self.flag = False
-                   self.pages.append(myPage)
-               except Exception as e:
-                   print "Cannot connect to the webpage."
-                   self.flag = False
-    
-    def showPage(self, currentPage):
+            if len(self.pages) < 1:
+                try:
+                    update_page = self.get_update_page()
+                    if not update_page:
+                        print "Fail to get the newest chapter."
+                        self.flag = False
+                    self.pages.append(update_page)
+                except Exception as err:
+                    print "Cannot connect to the webpage."
+                    self.flag = False
+                    raise err
+        return
+
+
+    def show_page(self, page):
         """ Print the page to the screen
 
-        :currentPage: current loaded page
+        :page: current loaded page
         :returns: TODO
 
         """
-        print currentPage['title']
-        print currentPage['content']
+        print page['title']
+        print page['content']
         print '\n'
-        userInput = raw_input("Type 'quit' to quit!")
-        if userInput == 'quit':
-           self.flag = False
+        user_input = raw_input("Type 'quit' to quit!")
+        if user_input == 'quit':
+            self.flag = False
         print '\n'
 
-    def emailPage(self, newPage):
+
+    def email_page(self, page):
         """ Get the page and send to the email address
-        :newPage: the page to be emailed
+        :page: the page to be emailed
         :returns: TODO
 
         """
         print "Sending the email..."
-        msg = MIMEText(newPage['title'] + '\n' + newPage['content'], 'plain', 'utf-8')
+        msg = MIMEText(page['title'] + '\n' + page['content'], 'plain', 'utf-8')
         msg['Subject'] = 'Novel update'
         msg['From'] = 'huangww87@gmail.com'
         msg['To'] = 'huangww87@gmail.com'
 
-        server = smtplib.SMTP('smtp.gmail.com',587)
+        server = smtplib.SMTP('smtp.gmail.com', 587)
         server.starttls()
         print "Please input you password:"
         password = raw_input()
@@ -141,10 +130,9 @@ class NovelSpider():
         server.sendmail(msg['From'], msg['To'], msg.as_string())
         server.quit()
         print "Email sent out."
-        userInput = raw_input("Type 'quit' to quit: ")
-        if userInput == 'quit':
-           self.flag = False
-        
+        user_input = raw_input("Type 'quit' to quit: ")
+        if user_input == 'quit':
+            self.flag = False
 
 
     def start(self):
@@ -152,21 +140,19 @@ class NovelSpider():
         :returns: TODO
 
         """
-        print u'Loading...'
+        print "Loading..."
 
-        thread.start_new_thread(self.loadPage, ())
-
-        # newPage = self.pages[self.page-1]
-        # self.showPage(newPage)
+        thread.start_new_thread(self.load_page, ())
         while self.flag:
-            if self.page <= len(self.pages):
-                newPage = self.pages[self.page-1]
-                # self.showPage(newPage)
-                self.emailPage(newPage)
-                self.page += 1
+            if self.page_number <= len(self.pages):
+                page = self.pages[self.page_number-1]
+                self.email_page(page)
+                # self.show_page(page)
+                self.page_number += 1
+
 
 def main():
-    """Define the interface for the program 
+    """ Define the interface for the program
     :returns: TODO
 
     """
@@ -176,15 +162,15 @@ def main():
         Program: Novel Spider
         Version: 1.0
         Author: Wallen
-        Date: 2017-03-01
+        Date: 2017-03-31
         Language: Python 2.7
         Features: Get the newest novel chapter
     ----------------------------------------------
     """
 
-    myNovel = NovelSpider()
-    myNovel.start()
+    spider = NovelSpider()
+    spider.start()
+
 
 if __name__ == "__main__":
     main()
-
